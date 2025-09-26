@@ -1,17 +1,13 @@
 package main
 
-
 ////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////
-// The following program will read data for 
+// The following program will read data for
 // Traffic Crashes from the City of Chicago data portal
-// we are reading the data from csv file 
+// we are reading the data from csv file
 // and storing it in a map data structure.
 ////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////
-
-
-
 
 ////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////
@@ -74,127 +70,112 @@ package main
 ////////////////////////////////////////////////////////////////////////////////////
 
 import (
+	"encoding/csv"
+	"encoding/json"
 	"fmt"
+	"log"
+	"os"
 	"strconv"
 	"time"
-	"os"
-	"log"
-	"encoding/json"
-	"encoding/csv"
+
 	"github.com/kelvins/geocoder"
 )
 
 type CrashData struct {
-	Rd_no                   				string
-	Crash_date_est_i                        string
-	Crash_date                      		string
-	Posted_speed_limit                      string
-	Traffic_control_device                  string
-	Device_condition                        string
-	Weather_condition                       string
-	Lighting_condition                      string
-	First_crash_type                        string
-	Trafficway_type                 		string
-	Lane_cnt                        		string
-	Alignment                       		string
-	Roadway_surface_cond                    string
-	Road_defect                     		string
-	Report_type                     		string
-	Crash_type                      		string
-	Intersection_related_i                  string
-	Not_right_of_way_i                      string
-	Hit_and_run_i                   		string
-	Damage                  				string
-	Date_police_notified                    string
-	Prim_contributory_cause                 string
-	Sec_contributory_cause                  string
-	Street_no                       		string
-	Street_direction                        string
-	Street_name                     		string
-	Beat_of_occurrence                      string
-	Photos_taken_i                  		string
-	Statements_taken_i                      string
-	Dooring_i                       		string
-	Work_zone_i                     		string
-	Work_zone_type                  		string
-	Workers_present_i                       string
-	Num_units                       		string
-	Most_severe_injury                      string
-	Injuries_total                  		string
-	Injuries_fatal                  		string
-	Injuries_incapacitating                 string
-	Injuries_non_incapacitating             string
-	Injuries_reported_not_evident           string
-	Injuries_no_indication                  string
-	Injuries_unknown                        string
-	Crash_hour                      		string
-	Crash_day_of_week                       string
-	Crash_month                     		string
-	Latitude                        		string
-	Longitude                       		string
-	Location                        		string
-	Zipcode									string
-	Address									geocoder.Address
+	Rd_no                         string
+	Crash_date_est_i              string
+	Crash_date                    string
+	Posted_speed_limit            string
+	Traffic_control_device        string
+	Device_condition              string
+	Weather_condition             string
+	Lighting_condition            string
+	First_crash_type              string
+	Trafficway_type               string
+	Lane_cnt                      string
+	Alignment                     string
+	Roadway_surface_cond          string
+	Road_defect                   string
+	Report_type                   string
+	Crash_type                    string
+	Intersection_related_i        string
+	Not_right_of_way_i            string
+	Hit_and_run_i                 string
+	Damage                        string
+	Date_police_notified          string
+	Prim_contributory_cause       string
+	Sec_contributory_cause        string
+	Street_no                     string
+	Street_direction              string
+	Street_name                   string
+	Beat_of_occurrence            string
+	Photos_taken_i                string
+	Statements_taken_i            string
+	Dooring_i                     string
+	Work_zone_i                   string
+	Work_zone_type                string
+	Workers_present_i             string
+	Num_units                     string
+	Most_severe_injury            string
+	Injuries_total                string
+	Injuries_fatal                string
+	Injuries_incapacitating       string
+	Injuries_non_incapacitating   string
+	Injuries_reported_not_evident string
+	Injuries_no_indication        string
+	Injuries_unknown              string
+	Crash_hour                    string
+	Crash_day_of_week             string
+	Crash_month                   string
+	Latitude                      string
+	Longitude                     string
+	Location                      string
+	Zipcode                       string
+	Address                       geocoder.Address
 }
-
-
-
-
 
 ///////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////
 
 func main() {
 
-	
+	// open  csv dataset
+	dataset, err := os.Open("Traffic_Crashes_Mini_Dataset.csv")
 
+	if err != nil {
+		log.Fatal(err)
+	}
 
-	// open  csv dataset 
-    dataset, err := os.Open("Traffic_Crashes_Mini_Dataset.csv")
-	
-	
-    if err != nil {
-        log.Fatal(err)
-    }
-	
 	defer dataset.Close()
-	
+
 	// read crash data using csv.Reader
-    csvReader := csv.NewReader(dataset)
-    data, err := csvReader.ReadAll()
-    if err != nil {
-        log.Fatal(err)
-    }
-	
+	csvReader := csv.NewReader(dataset)
+	data, err := csvReader.ReadAll()
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	// converts data to map with crashID as key and CrashData struct as values
 	createCrashMap(data)
 
-
 	//uncomment below lines to print the entire has map of data
-    //crashMap := createCrashMap(data)
+	//crashMap := createCrashMap(data)
 	//fmt.Printf("\n\n\n")
 
-    // prints the first entry in Hash Map of Crashes
-    //fmt.Printf("%+v\n", crashMap[data[1][0]])	
+	// prints the first entry in Hash Map of Crashes
+	//fmt.Printf("%+v\n", crashMap[data[1][0]])
 
 }
 
-
-
-
-
-/////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////
-func createCrashMap(data [][]string) map[string]CrashData{
-
-	
+// ///////////////////////////////////////////////////////////////////////////////////////
+// ///////////////////////////////////////////////////////////////////////////////////////
+func createCrashMap(data [][]string) map[string]CrashData {
 
 	crash_mp := make(map[string]CrashData)
 	crash_on_day_mp := make(map[string]int)
 	crash_in_zip_code_mp := make(map[string]int)
 	zip_code_with_Hit_and_run_mp := make(map[string]int)
-	
+
 	fmt.Println("CreateCrashMap: Creating Crash Map from Data")
 
 	// Get your geocoder.ApiKey from here :
@@ -202,15 +183,13 @@ func createCrashMap(data [][]string) map[string]CrashData{
 
 	geocoder.ApiKey = "YOUR_API_KEY_FROM_GCP_CONSOLE"
 
-	
-	
 	//uncomment below line to process the entire data set
 	//for i := 1; i < len(data); i++ {
 	for i := 1; i < 1000; i++ {
-		
-		//initilzing the list 
+
+		//initilzing the list
 		var crashRecord CrashData
-		
+
 		crashRecord.Rd_no = data[i][1]
 		crashRecord.Crash_date_est_i = data[i][2]
 		crashRecord.Crash_date = data[i][3]
@@ -256,19 +235,14 @@ func createCrashMap(data [][]string) map[string]CrashData{
 		crashRecord.Crash_hour = data[i][43]
 		crashRecord.Crash_day_of_week = data[i][44]
 		crashRecord.Crash_month = data[i][45]
-		
-		
+
 		if data[i][46] == "" || data[i][47] == "" {
-			continue;
-		}else{
+			continue
+		} else {
 			crashRecord.Latitude = data[i][46]
 			crashRecord.Longitude = data[i][47]
 			crashRecord.Location = data[i][48]
 		}
-		
-		
-		
-
 
 		// Using latitude and longitude in geocoder.GeocodingReverse
 		// we could find the crash zip-code and Address
@@ -282,57 +256,55 @@ func createCrashMap(data [][]string) map[string]CrashData{
 		}
 
 		address_list, _ := geocoder.GeocodingReverse(location)
-		
+
 		// Ignoring the entry if location of the data is not available
-		if len(address_list) ==0 {
-			fmt.Printf("No results found for crash at latitude : %f and Longitude : %f \n",latitude_float,longitude_float)
+		if len(address_list) == 0 {
+			fmt.Printf("No results found for crash at latitude : %f and Longitude : %f \n", latitude_float, longitude_float)
 			continue
 		}
-		
+
 		address := address_list[0]
 		zip_code := address.PostalCode
-		
+
 		crashRecord.Zipcode = zip_code
 		crashRecord.Address = address
-		
+
 		///////////////////////////////////////////////////////////////////
 		///////////////////////////////////////////////////////////////////
 		//Processing the dataset to Print Crashes on Each day of the week
-		
+
 		parsed_date, err := time.Parse("1/2/2006 15:04", crashRecord.Crash_date)
 		if err != nil {
 			panic(err)
 		}
-		
+
 		day_from_date := parsed_date.Weekday().String()
-		if crash_on_day_mp[day_from_date] !=0 {
-			crash_on_day_mp[day_from_date] = crash_on_day_mp[day_from_date]+1
-		}else if day_from_date != "" {
+		if crash_on_day_mp[day_from_date] != 0 {
+			crash_on_day_mp[day_from_date] = crash_on_day_mp[day_from_date] + 1
+		} else if day_from_date != "" {
 			crash_on_day_mp[day_from_date] = 1
 		}
-		
-		
+
 		//Processing the dataset to Print Crashes at Each Zip code
-		if crashRecord.Zipcode != "" && crash_in_zip_code_mp[crashRecord.Zipcode] !=0 {
-			crash_in_zip_code_mp[crashRecord.Zipcode] = crash_in_zip_code_mp[crashRecord.Zipcode]+1
-		}else if crashRecord.Zipcode != ""{
+		if crashRecord.Zipcode != "" && crash_in_zip_code_mp[crashRecord.Zipcode] != 0 {
+			crash_in_zip_code_mp[crashRecord.Zipcode] = crash_in_zip_code_mp[crashRecord.Zipcode] + 1
+		} else if crashRecord.Zipcode != "" {
 			crash_in_zip_code_mp[crashRecord.Zipcode] = 1
 		}
-		
+
 		//Processing the dataset to Print Hit and Runs at Each Zip code-
 		if crashRecord.Hit_and_run_i == "Y" {
-			if zip_code_with_Hit_and_run_mp[crashRecord.Zipcode] !=0 {
-				zip_code_with_Hit_and_run_mp[crashRecord.Zipcode] = zip_code_with_Hit_and_run_mp[crashRecord.Zipcode]+1
-			}else if crashRecord.Zipcode != "" {
+			if zip_code_with_Hit_and_run_mp[crashRecord.Zipcode] != 0 {
+				zip_code_with_Hit_and_run_mp[crashRecord.Zipcode] = zip_code_with_Hit_and_run_mp[crashRecord.Zipcode] + 1
+			} else if crashRecord.Zipcode != "" {
 				zip_code_with_Hit_and_run_mp[crashRecord.Zipcode] = 1
 			}
 		}
-		
+
 		crash_mp[data[i][0]] = crashRecord
 
-
 	}
-	
+
 	fmt.Println("---------------------Crashes on Each day of the week-----------------")
 	crash_on_day, err := json.MarshalIndent(crash_on_day_mp, "", "  ")
 	if err != nil {
@@ -340,7 +312,7 @@ func createCrashMap(data [][]string) map[string]CrashData{
 	}
 	fmt.Print(string(crash_on_day))
 	fmt.Printf("\n\n")
-	
+
 	fmt.Println("---------------------Crashes at Each Zip code-----------------")
 	crash_in_zip_code, err := json.MarshalIndent(crash_in_zip_code_mp, "", "  ")
 	if err != nil {
@@ -348,18 +320,17 @@ func createCrashMap(data [][]string) map[string]CrashData{
 	}
 	fmt.Print(string(crash_in_zip_code))
 	fmt.Printf("\n\n")
-	
+
 	fmt.Println("---------------------Hit and Runs at Each Zip code-----------------")
 
 	// Add your Code Here
-	
-	
-	return crash_mp;
+	hit_and_run_in_zip_code, err := json.MarshalIndent(zip_code_with_Hit_and_run_mp, "", "  ")
+	if err != nil {
+		fmt.Println("error:", err)
+	}
+	fmt.Print(string(hit_and_run_in_zip_code))
+	fmt.Printf("\n\n")
+
+	return crash_mp
 
 }
-
-
-
-
-
-
