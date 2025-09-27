@@ -79,6 +79,8 @@ import (
 	"time"
 
 	"github.com/kelvins/geocoder"
+
+	"github.com/joho/godotenv"
 )
 
 type CrashData struct {
@@ -178,10 +180,16 @@ func createCrashMap(data [][]string) map[string]CrashData {
 
 	fmt.Println("CreateCrashMap: Creating Crash Map from Data")
 
-	// Get your geocoder.ApiKey from here :
+	// Get geocoder.ApiKey from here :
 	// https://developers.google.com/maps/documentation/geocoding/get-api-key?authuser=2
 
-	geocoder.ApiKey = "YOUR_API_KEY_FROM_GCP_CONSOLE"
+	// Load .env file to get geocoder API key
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
+
+	geocoder.ApiKey = os.Getenv("API_KEY")
 
 	//uncomment below line to process the entire data set
 	//for i := 1; i < len(data); i++ {
