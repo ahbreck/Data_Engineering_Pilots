@@ -5,38 +5,66 @@ import (
 	"fmt"
 )
 
-// Ignoring empty fields in JSON
-type NoEmpty struct {
-	Name    string `json:"username"`
-	Surname string `json:"surname"`
-	Year    int    `json:"creationyear,omitempty"`
-}
-
-// Removing private fields and ignoring empty fields
-type Password struct {
-	Name    string `json:"username"`
-	Surname string `json:"surname,omitempty"`
-	Year    int    `json:"creationyear,omitempty"`
-	Pass    string `json:"-"`
+type MSDSCourse struct {
+	CID     string `json:"courseI_D"`
+	CNAME   string `json:"course_name"`
+	CPREREQ string `json:"prerequisite"`
 }
 
 func main() {
-	noempty := NoEmpty{Name: "Mihalis"}
-	password := Password{Name: "Mihalis", Pass: "myPassword"}
 
-	// Ignoring empty fields in JSON
-	noEmptyVar, err := json.Marshal(&noempty)
+	// Create some courses
+	c1 := MSDSCourse{CID: "MSDS432", CNAME: "Foundations of Data Engineering", CPREREQ: "MSDS400 and MSDS420"}
+	c2 := MSDSCourse{CID: "MSDS420", CNAME: "Database Systems", CPREREQ: "None"}
+	c3 := MSDSCourse{CID: "MSDS458", CNAME: "Artificial Intelligence and Deep Learning", CPREREQ: "MSDS420 and MSDS422"}
+	c4 := MSDSCourse{CID: "MSDS460", CNAME: "Decision Analytics", CPREREQ: "MSDS400 and MSDS401"}
+	c5 := MSDSCourse{CID: "MSDS422", CNAME: "Practical Machine Learning", CPREREQ: "MSDS400 and MSDS401"}
+
+	// Create slice object to store courses
+	courses_slice := []MSDSCourse{c1, c2, c3, c4, c5}
+
+	// Create array object to store courses
+	courses_array := [5]MSDSCourse{c1, c2, c3, c4, c5}
+
+	// Create map object to store courses
+	courses_map := make(map[string]MSDSCourse)
+	courses_map[c1.CID] = c1
+	courses_map[c2.CID] = c2
+	courses_map[c3.CID] = c3
+	courses_map[c4.CID] = c4
+	courses_map[c5.CID] = c5
+
+	// Slice example
+	slice_bytes, err := json.Marshal(courses_slice)
 	if err != nil {
 		fmt.Println(err)
 	} else {
-		fmt.Printf("noEmptyVar decoded with value %s\n", noEmptyVar)
+		fmt.Println()
+		fmt.Printf("Slice decoded with value %s\n", slice_bytes)
+		fmt.Println()
+		fmt.Printf("Original format was %s\n", courses_slice)
+		fmt.Println()
 	}
 
-	// Removing private fields
-	passwordVar, err := json.Marshal(&password)
+	// Array example
+	array_bytes, err := json.Marshal(courses_array)
 	if err != nil {
 		fmt.Println(err)
 	} else {
-		fmt.Printf("password decoded with value %s\n", passwordVar)
+		fmt.Printf("Array decoded with value %s\n", array_bytes)
+		fmt.Println()
+		fmt.Printf("Original format was %s\n", courses_array)
+		fmt.Println()
+	}
+
+	// Map example
+	map_bytes, err := json.Marshal(courses_map)
+	if err != nil {
+		fmt.Println(err)
+	} else {
+		fmt.Printf("Map decoded with value %s\n", map_bytes)
+		fmt.Println()
+		fmt.Printf("Original format was %s\n", courses_map)
+		fmt.Println()
 	}
 }
