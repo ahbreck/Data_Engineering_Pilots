@@ -1,6 +1,0 @@
-https://gosamples.dev/measure-time/
-
-https://golangcode.com/print-the-current-memory-usage/
-
-https://pkg.go.dev/runtime#pkg-overview
-
