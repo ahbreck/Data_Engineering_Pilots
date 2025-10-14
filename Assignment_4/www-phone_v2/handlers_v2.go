@@ -28,7 +28,7 @@ func deleteHandler(w http.ResponseWriter, r *http.Request) {
 
 	log.Println("Serving:", r.URL.Path, "from", r.Host)
 
-	courseID := paramStr[0]
+	courseID := paramStr[2]
 	err := deleteEntry(courseID)
 	if err != nil {
 		fmt.Println(err)
@@ -68,9 +68,9 @@ func insertHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	courseID := paramStr[0]
-	course_name := paramStr[1]
-	course_prereqs := paramStr[2]
+	courseID := paramStr[2]
+	course_name := paramStr[3]
+	course_prereqs := paramStr[4]
 
 	t := strings.ReplaceAll(courseID, "-", "")
 	if !matchTel(t) {
@@ -107,7 +107,7 @@ func searchHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var Body string
-	courseID := paramStr[0]
+	courseID := paramStr[2]
 	t := search(courseID)
 	if t == nil {
 		w.WriteHeader(http.StatusNotFound)
