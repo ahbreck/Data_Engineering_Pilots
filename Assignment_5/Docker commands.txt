@@ -1,0 +1,48 @@
+(*) All docker/container CLI commands are available on this URL:
+
+https://docs.docker.com/engine/reference/commandline/exec/
+
+
+
+
+(*) to run postgress with docker-compose.yml file
+
+	docker-compose up -d
+
+
+(*) to check if it is running 
+
+	docker ps
+
+
+(*) to check docker images
+
+	docker images
+
+
+(*) to see list of processes within a docker container
+
+	docker top IMAGE
+
+	or
+
+	docker top CONTAINER ID
+
+
+(*) to see detailed description of the docker container
+
+	docker inspect IMAGE
+
+	or
+
+	docker inspect CONTAINER ID
+
+
+(*) Create an empty docker container
+
+	docker run -it ubuntu:latest /bin/bash
+
+
+(*) Connect to an existing/running container from terminal/window cli
+
+	docker exec -it postgres /bin/bash

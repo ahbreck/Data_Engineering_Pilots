@@ -1,0 +1,4 @@
+github.com/lib/pq v1.10.5 h1:J+gdV2cUmX7ZqL2B0lFcW0m+egaHC2V3lpO8nWxyYiQ=
+github.com/lib/pq v1.10.5/go.mod h1:AlVN5x4E4T544tWzH6hKfbfQvm3HdbOxrmggDNAPY9o=
+github.com/mactsouk/post05 v0.0.0-20210707111726-e78445111bbb h1:vVfVwDog8PjeaPcyUtzZiuranYqzR2b2YJTpAudwzFI=
+github.com/mactsouk/post05 v0.0.0-20210707111726-e78445111bbb/go.mod h1:tubZz1btr733wBZCwJnGEr4RogSn4Vqimt+oP15k8Xo=
