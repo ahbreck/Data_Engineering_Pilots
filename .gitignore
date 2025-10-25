@@ -30,6 +30,7 @@ go.work.sum
 # docker database info
 pgadmin_data/
 postgres_data/
+**/postgres/
 
 # Editor/IDE
 # .idea/
