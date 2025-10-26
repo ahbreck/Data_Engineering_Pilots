@@ -1,4 +1,4 @@
-package post05main
+package main
 
 import (
 	"database/sql"

@@ -2,34 +2,11 @@ package main
 
 import (
 	"fmt"
-	"math/rand"
-	"time"
 
-	"github.com/mactsouk/post05"
+	//"github.com/mactsouk/post05"
+	"github.com/ahbreck/Data_Engineering_Pilots/Assignment_5/source_code_updated/post05-main/post05-main"
+	//"main.go/post05-main/post05-main"
 )
-
-var MIN = 0
-var MAX = 26
-
-func random(min, max int) int {
-	return rand.Intn(max-min) + min
-}
-
-func getString(length int64) string {
-	startChar := "A"
-	temp := ""
-	var i int64 = 1
-	for {
-		myRand := random(MIN, MAX)
-		newChar := string(startChar[0] + byte(myRand))
-		temp = temp + newChar
-		if i == length {
-			break
-		}
-		i++
-	}
-	return temp
-}
 
 func main() {
 	post05.Hostname = "localhost"
@@ -38,54 +15,17 @@ func main() {
 	post05.Password = "root"
 	post05.Database = "go"
 
-	data, err := post05.ListUsers()
-	if err != nil {
-		fmt.Println(err)
+	courses := []post05.MSDSCourse{
+		{CID: "MSDS500", CNAME: "Data Science Foundations", CPREREQ: "None"},
+		{CID: "MSDS510", CNAME: "Applied Statistics", CPREREQ: "MSDS500"},
+		{CID: "MSDS520", CNAME: "Machine Learning", CPREREQ: "MSDS510"},
+		{CID: "MSDS530", CNAME: "Data Engineering", CPREREQ: "MSDS500"},
+		{CID: "MSDS540", CNAME: "Data Visualization", CPREREQ: "MSDS500"},
+	}
+
+	if err := post05.SeedCourseCatalog(courses); err != nil {
+		fmt.Println("unable to seed course catalog:", err)
 		return
 	}
-	for _, v := range data {
-		fmt.Println(v)
-	}
 
-	SEED := time.Now().Unix()
-	rand.Seed(SEED)
-	random_username := getString(5)
-
-	t := post05.Userdata{
-		Username:    random_username,
-		Name:        "Mihalis",
-		Surname:     "Tsoukalos",
-		Description: "This is me!"}
-
-	id := post05.AddUser(t)
-	if id == -1 {
-		fmt.Println("There was an error adding user", t.Username)
-	}
-
-	err = post05.DeleteUser(id)
-	if err != nil {
-		fmt.Println(err)
-	}
-
-	// Trying to delete it again!
-	err = post05.DeleteUser(id)
-	if err != nil {
-		fmt.Println(err)
-	}
-
-	id = post05.AddUser(t)
-	if id == -1 {
-		fmt.Println("There was an error adding user", t.Username)
-	}
-
-	t = post05.Userdata{
-		Username:    random_username,
-		Name:        "Mihalis",
-		Surname:     "Tsoukalos",
-		Description: "This might not be me!"}
-
-	err = post05.UpdateUser(t)
-	if err != nil {
-		fmt.Println(err)
-	}
 }
