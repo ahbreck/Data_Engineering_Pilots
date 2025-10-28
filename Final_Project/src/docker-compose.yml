@@ -1,24 +1,31 @@
 # Docker Compose file Reference (https://docs.docker.com/compose/compose-file/)
-
-version: '3'
+version: '3.9'
 
 # Define services
 services:
 
-  # App Service
+  # Placeholder App Service
   app:
-    # Configuration for building the docker image for the service
+    image: alpine:latest
     container_name: chicago_business_intelligence
-    build:
-      context: . # Use an image built from the specified dockerfile in the current directory.
-      dockerfile: Dockerfile
-    ports:
-      - "8080:8080" # Forward the exposed port 8080 on the container to port 8080 on the host machine
-    restart: unless-stopped
-    depends_on: 
-      - postgresdb # This service depends on postgres. 
-    networks: # Networks to join (Services on the same network can communicate with each other using their name)
+    command: ["sleep", "infinity"]
+    networks:
       - backend
+    depends_on:
+      - postgresdb
+    restart: unless-stopped
+
+  # Public Health Data Service
+  public-health-service:
+    build:
+      context: ./public-health-service
+      dockerfile: Dockerfile
+    container_name: public_health_service
+    depends_on:
+      - postgresdb
+    networks:
+      - backend
+    restart: unless-stopped
 
   # Postgres Service   
   postgresdb:
@@ -31,12 +38,11 @@ services:
       - PGDATA=/var/lib/postgresql/data
       #- PGPORT=5433
     ports:
-      - '5433:5433'
+      - '5433:5432'
     volumes:
       - db-data:/var/lib/postgresql/data
     networks:
       - backend
-
 
   # pgadmin service
   pgadmin:
