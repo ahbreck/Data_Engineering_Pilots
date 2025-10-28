@@ -35,3 +35,9 @@ postgres_data/
 # Editor/IDE
 # .idea/
 # .vscode/
+
+# Submission files and data files
+*.mp4
+*.odt
+*.pdf
+*.zip

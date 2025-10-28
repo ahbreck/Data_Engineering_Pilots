@@ -6,7 +6,7 @@ import (
 
 func main() {
 	Hostname = "localhost"
-	Port = 5433
+	Port = 5435
 	Username = "postgres"
 	Password = "root"
 	Database = "go"
