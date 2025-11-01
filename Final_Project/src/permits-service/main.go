@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"strconv"
 	"time"
 
 	"database/sql"
@@ -13,15 +14,15 @@ import (
 )
 
 type BuildingPermitsJsonRecords []struct {
-	Id             string `json:"id"`
-	Permit_        string `json:"permit_"`
-	Permit_type    string `json:"permit_type"`
-	Issue_date     string `json:"issue_date"`
-	Street_number  string `json:"street_number"`
-	Street_name    string `json:"street_name"`
-	Latitude       string `json:"latitude"`
-	Longitude      string `json:"longitude"`
-	Location       string `json:"location"`
+	Id            string `json:"id"`
+	Permit_       string `json:"permit_"`
+	Permit_type   string `json:"permit_type"`
+	Issue_date    string `json:"issue_date"`
+	Street_number string `json:"street_number"`
+	Street_name   string `json:"street_name"`
+	Latitude      string `json:"latitude"`
+	Longitude     string `json:"longitude"`
+	//Location       string `json:"location"`
 	Community_area string `json:"community_area"`
 	Census_tract   string `json:"census_tract"`
 }
@@ -30,9 +31,13 @@ func main() {
 
 	// Establish connection to Postgres Database
 
+	// OPTION 1
+	// Establish connection to Postgres Database
+	db_connection := "user=postgres dbname=chicago_business_intelligence password=sql host=localhost sslmode=disable"
+
 	// OPTION 2
 	// Docker container for the Postgres microservice - uncomment when deploy with host.docker.internal
-	db_connection := "user=postgres dbname=chicago_business_intelligence password=root host=postgresdb sslmode=disable port=5432"
+	// db_connection := "user=postgres dbname=chicago_business_intelligence password=root host=postgresdb sslmode=disable port=5432"
 
 	// OPTION 3
 	// Docker container for the Postgress microservice - uncomment when deploy with IP address of the container
@@ -82,7 +87,7 @@ func GetBuildingPermits(db *sql.DB) {
 	}
 
 	create_table := `CREATE TABLE IF NOT EXISTS "building_permits" (
-		"id"   SERIAL PRIMARY KEY,
+		"id" VARCHAR(255) PRIMARY KEY,
 		"permit_id" VARCHAR(255) UNIQUE,
 		"permit_type" VARCHAR(255),
 		"issue_date"      VARCHAR(255),
@@ -90,7 +95,6 @@ func GetBuildingPermits(db *sql.DB) {
 		"street_name"      VARCHAR(255),
 		"latitude"      DOUBLE PRECISION ,
 		"longitude"      DOUBLE PRECISION,
-		"location" VARCHAR(255),
 		"community_area" VARCHAR(255),
 		"census_tract" VARCHAR(255)
 	);`
@@ -102,7 +106,7 @@ func GetBuildingPermits(db *sql.DB) {
 
 	fmt.Println("Created Table for Building Permits")
 
-	var url = "https://data.cityofchicago.org/resource/building-permits.json?$select=id,permit_,permit_type,issue_date,street_number,street_name,latitude,longitude,location,community_area,census_tract&$limit=1"
+	var url = "https://data.cityofchicago.org/resource/building-permits.json?$select=id,permit_,permit_type,issue_date,street_number,street_name,latitude,longitude,community_area,census_tract&$limit=100"
 
 	res, err := http.Get(url)
 	if err != nil {
@@ -131,14 +135,18 @@ func GetBuildingPermits(db *sql.DB) {
 			record.Street_name == "" ||
 			record.Latitude == "" ||
 			record.Longitude == "" ||
-			record.Location == "" ||
+			//.Location == "" ||
 			record.Community_area == "" ||
 			record.Census_tract == "" {
+			fmt.Printf("Skipping record due to missing fields: %+v\n", record)
 			continue
 		}
 
-		sql := `INSERT INTO building_permits ("id", "permit_id", "permit_type", "issue_date", "street_number", "street_name", "latitude", "longitude", "location", "community_area", "census_tract")
-		values($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`
+		sql := `INSERT INTO building_permits ("id", "permit_id", "permit_type", "issue_date", "street_number", "street_name", "latitude", "longitude", "community_area", "census_tract")
+		values($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`
+
+		lat, _ := strconv.ParseFloat(record.Latitude, 64)
+		lon, _ := strconv.ParseFloat(record.Longitude, 64)
 
 		_, err := db.Exec(
 			sql,
@@ -148,9 +156,9 @@ func GetBuildingPermits(db *sql.DB) {
 			record.Issue_date,
 			record.Street_number,
 			record.Street_name,
-			record.Latitude,
-			record.Longitude,
-			record.Location,
+			lat,
+			lon,
+			//record.Location,
 			record.Community_area,
 			record.Census_tract)
 
