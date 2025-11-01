@@ -82,7 +82,7 @@ func GetBuildingPermits(db *sql.DB) {
 	}
 
 	create_table := `CREATE TABLE IF NOT EXISTS "building_permits" (
-		"id"   SERIAL ,
+		"id"   SERIAL PRIMARY KEY,
 		"permit_id" VARCHAR(255) UNIQUE,
 		"permit_type" VARCHAR(255),
 		"issue_date"      VARCHAR(255),
@@ -92,8 +92,7 @@ func GetBuildingPermits(db *sql.DB) {
 		"longitude"      DOUBLE PRECISION,
 		"location" VARCHAR(255),
 		"community_area" VARCHAR(255),
-		"census_tract" VARCHAR(255),
-		PRIMARY KEY ("id")
+		"census_tract" VARCHAR(255)
 	);`
 
 	_, _err := db.Exec(create_table)
@@ -138,11 +137,12 @@ func GetBuildingPermits(db *sql.DB) {
 			continue
 		}
 
-		sql := `INSERT INTO building_permits ("permit_id", "permit_type", "issue_date", "street_number", "street_name", "latitude", "longitude", "location", "community_area", "census_tract")
-		values($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`
+		sql := `INSERT INTO building_permits ("id", "permit_id", "permit_type", "issue_date", "street_number", "street_name", "latitude", "longitude", "location", "community_area", "census_tract")
+		values($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`
 
 		_, err := db.Exec(
 			sql,
+			record.Id,
 			record.Permit_,
 			record.Permit_type,
 			record.Issue_date,

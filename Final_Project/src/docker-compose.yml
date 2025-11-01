@@ -27,6 +27,18 @@ services:
       - backend
     restart: unless-stopped
 
+  # Permits Data Service
+  permits-service:
+    build:
+      context: ./permits-service
+      dockerfile: Dockerfile
+    container_name: permits_service
+    depends_on:
+      - postgresdb
+    networks:
+      - backend
+    restart: unless-stopped
+
   # Postgres Service   
   postgresdb:
     image: postgres
