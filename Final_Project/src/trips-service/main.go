@@ -3,18 +3,22 @@ package main
 import (
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
+	"os"
 	"strconv"
+	"sync"
 	"time"
 
 	"database/sql"
 	"encoding/json"
 
+	"github.com/joho/godotenv"
 	"github.com/kelvins/geocoder"
 	_ "github.com/lib/pq"
 )
 
-type TaxiTripsJsonRecords []struct {
+type TripRecord struct {
 	Trip_id                    string `json:"trip_id"`
 	Trip_start_timestamp       string `json:"trip_start_timestamp"`
 	Trip_end_timestamp         string `json:"trip_end_timestamp"`
@@ -28,6 +32,15 @@ type TaxiTripsJsonRecords []struct {
 ///////////////////////////////////////////////////////////////////////////////////////
 
 func main() {
+
+	// Load environment variables first
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
+
+	// Read USE_GEOCODING flag from environment
+	useGeocoding := os.Getenv("USE_GEOCODING") == "true"
 
 	// Establish connection to Postgres Database
 
@@ -70,10 +83,52 @@ func main() {
 	// Though, please note that Not all datasets need to be pulled on daily basis
 	// fine-tune the following code-snippet as you see necessary
 	for {
-		fmt.Println("Connected to database successfully")
-		GetTaxiTrips(db)
-		fmt.Println("Finished weekly update, sleeping for 1 day...")
-		time.Sleep(7 * 24 * time.Hour) // sleep for one day
+		fmt.Println("Starting data collection cycle...")
+
+		drop_table := `drop table if exists taxi_trips`
+		_, err = db.Exec(drop_table)
+		if err != nil {
+			panic(err)
+		}
+
+		create_table := `CREATE TABLE IF NOT EXISTS "taxi_trips" (
+							"id"   SERIAL , 
+							"trip_id" VARCHAR(255) UNIQUE, 
+							"trip_start_timestamp" TIMESTAMP WITH TIME ZONE, 
+							"trip_end_timestamp" TIMESTAMP WITH TIME ZONE, 
+							"pickup_centroid_latitude" DOUBLE PRECISION, 
+							"pickup_centroid_longitude" DOUBLE PRECISION, 
+							"dropoff_centroid_latitude" DOUBLE PRECISION, 
+							"dropoff_centroid_longitude" DOUBLE PRECISION, 
+							"pickup_zip_code" VARCHAR(255), 
+							"dropoff_zip_code" VARCHAR(255), 
+							"trip_type" VARCHAR(50),
+							PRIMARY KEY ("id") 
+						);`
+
+		_, _err := db.Exec(create_table)
+		if _err != nil {
+			panic(_err)
+		}
+
+		// Run both API pulls concurrently ---
+		var wg sync.WaitGroup
+		wg.Add(2)
+
+		go func() {
+			defer wg.Done()
+			GetTrips(db, "taxi", "wrvz-psew", 10, useGeocoding)
+		}()
+
+		go func() {
+			defer wg.Done()
+			GetTrips(db, "tnp", "m6dm-c72p", 10, useGeocoding)
+		}()
+
+		wg.Wait()
+
+		fmt.Println("Finished daily update, sleeping for 1 day...")
+		time.Sleep(24 * time.Hour) // sleep for one day
 	}
 
 }
@@ -81,116 +136,89 @@ func main() {
 /////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////
 
-func GetTaxiTrips(db *sql.DB) {
+func GetTrips(db *sql.DB, tripType string, apiCode string, limit int, useGeocoding bool) {
 
-	// This function is NOT complete
-	// It provides code-snippets for the data source: https://data.cityofchicago.org/Transportation/Taxi-Trips/wrvz-psew
-	// You need to complete the implmentation and add the data source: https://data.cityofchicago.org/Transportation/Transportation-Network-Providers-Trips/m6dm-c72p
-
-	// Data Collection needed from two data sources:
-	// 1. https://data.cityofchicago.org/Transportation/Taxi-Trips/wrvz-psew
-	// 2. https://data.cityofchicago.org/Transportation/Transportation-Network-Providers-Trips/m6dm-c72p
-
-	fmt.Println("GetTaxiTrips: Collecting Taxi Trips Data")
+	fmt.Printf("Collecting %s trip data...\n", tripType)
 
 	// Get your geocoder.ApiKey from here :
 	// https://developers.google.com/maps/documentation/geocoding/get-api-key?authuser=2
 
-	geocoder.ApiKey = "insert_key_here"
-
-	drop_table := `drop table if exists taxi_trips`
-	_, err := db.Exec(drop_table)
-	if err != nil {
-		panic(err)
+	if useGeocoding {
+		geocoder.ApiKey = os.Getenv("API_KEY")
 	}
 
-	create_table := `CREATE TABLE IF NOT EXISTS "taxi_trips" (
-						"id"   SERIAL , 
-						"trip_id" VARCHAR(255) UNIQUE, 
-						"trip_start_timestamp" TIMESTAMP WITH TIME ZONE, 
-						"trip_end_timestamp" TIMESTAMP WITH TIME ZONE, 
-						"pickup_centroid_latitude" DOUBLE PRECISION, 
-						"pickup_centroid_longitude" DOUBLE PRECISION, 
-						"dropoff_centroid_latitude" DOUBLE PRECISION, 
-						"dropoff_centroid_longitude" DOUBLE PRECISION, 
-						"pickup_zip_code" VARCHAR(255), 
-						"dropoff_zip_code" VARCHAR(255), 
-						PRIMARY KEY ("id") 
-					);`
-
-	_, _err := db.Exec(create_table)
-	if _err != nil {
-		panic(_err)
-	}
-
-	fmt.Println("Created Table for Taxi Trips")
-
-	// While doing unit-testing keep the limit value to 500
-	// later you could change it to 1000, 2000, 10,000, etc.
-	var url = "https://data.cityofchicago.org/resource/wrvz-psew.json?$limit=1"
+	// Build API URL dynamically
+	url := fmt.Sprintf("https://data.cityofchicago.org/resource/%s.json?$limit=%d", apiCode, limit)
 
 	res, err := http.Get(url)
 	if err != nil {
 		panic(err)
 	}
-
-	fmt.Println("Received data from SODA REST API for Taxi Trips")
+	defer res.Body.Close()
 
 	body, _ := ioutil.ReadAll(res.Body)
-	var taxi_trips_list TaxiTripsJsonRecords
+	var taxi_trips_list []TripRecord
 	json.Unmarshal(body, &taxi_trips_list)
+
+	insertedCount := 0
+	skippedCount := 0
 
 	for _, record := range taxi_trips_list {
 
 		// We will execute defensive coding to check for messy/dirty/missing data values
 		// Any record that has messy/dirty/missing data we don't enter it in the data lake/table
+		fmt.Printf("record: %+v\n", record)
 
 		if record.Trip_id == "" ||
 			// if trip start/end timestamp doesn't have the length of 23 chars in the format "0000-00-00T00:00:00.000"
 			// skip this record
-			record.Trip_start_timestamp < 23 ||
-			record.Trip_end_timestamp < 23 ||
-			record.Pickup_centroid_latitude == "" ||
-			record.Pickup_centroid_longitude == "" ||
-			record.Dropoff_centroid_latitude == "" ||
-			record.Dropoff_centroid_longitude == "" {
+			len(record.Trip_start_timestamp) < 23 ||
+			len(record.Trip_end_timestamp) < 23 { //||
+			//record.Pickup_centroid_latitude == "" ||
+			//record.Pickup_centroid_longitude == "" ||
+			//record.Dropoff_centroid_latitude == "" ||
+			//record.Dropoff_centroid_longitude == "" {
+			fmt.Printf("Skipping record due to missing fields: %+v\n", record)
+			skippedCount++
 			continue
 		}
 
-		// Using pickup_centroid_latitude and pickup_centroid_longitude in geocoder.GeocodingReverse
-		// we could find the pickup zip-code
-
 		pickup_centroid_latitude_float, _ := strconv.ParseFloat(record.Pickup_centroid_latitude, 64)
 		pickup_centroid_longitude_float, _ := strconv.ParseFloat(record.Pickup_centroid_longitude, 64)
-		pickup_location := geocoder.Location{
-			Latitude:  pickup_centroid_latitude_float,
-			Longitude: pickup_centroid_longitude_float,
-		}
-
-		// Comment the following line while not unit-testing
-		fmt.Println(pickup_location)
-
-		pickup_address_list, _ := geocoder.GeocodingReverse(pickup_location)
-		pickup_address := pickup_address_list[0]
-		pickup_zip_code := pickup_address.PostalCode
-
-		// Using dropoff_centroid_latitude and dropoff_centroid_longitude in geocoder.GeocodingReverse
-		// we could find the dropoff zip-code
-
 		dropoff_centroid_latitude_float, _ := strconv.ParseFloat(record.Dropoff_centroid_latitude, 64)
 		dropoff_centroid_longitude_float, _ := strconv.ParseFloat(record.Dropoff_centroid_longitude, 64)
 
-		dropoff_location := geocoder.Location{
-			Latitude:  dropoff_centroid_latitude_float,
-			Longitude: dropoff_centroid_longitude_float,
+		// Default ZIPs to empty strings
+		pickup_zip_code := ""
+		dropoff_zip_code := ""
+
+		if useGeocoding {
+
+			pickup_location := geocoder.Location{
+				Latitude:  pickup_centroid_latitude_float,
+				Longitude: pickup_centroid_longitude_float,
+			}
+
+			dropoff_location := geocoder.Location{
+				Latitude:  dropoff_centroid_latitude_float,
+				Longitude: dropoff_centroid_longitude_float,
+			}
+
+			pickup_address_list, _ := geocoder.GeocodingReverse(pickup_location)
+
+			dropoff_address_list, _ := geocoder.GeocodingReverse(dropoff_location)
+
+			if len(pickup_address_list) > 0 {
+				pickup_zip_code = pickup_address_list[0].PostalCode
+			}
+			if len(dropoff_address_list) > 0 {
+				dropoff_zip_code = dropoff_address_list[0].PostalCode
+			}
 		}
 
-		dropoff_address_list, _ := geocoder.GeocodingReverse(dropoff_location)
-		dropoff_address := dropoff_address_list[0]
-		dropoff_zip_code := dropoff_address.PostalCode
-
 		sql := `INSERT INTO taxi_trips ("trip_id", "trip_start_timestamp", "trip_end_timestamp", "pickup_centroid_latitude", "pickup_centroid_longitude", "dropoff_centroid_latitude", "dropoff_centroid_longitude", "pickup_zip_code", 
-			"dropoff_zip_code") values($1, $2, $3, $4, $5, $6, $7, $8, $9)`
+			"dropoff_zip_code", "trip_type") values($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+			ON CONFLICT (trip_id) DO NOTHING`
 
 		_, err = db.Exec(
 			sql,
@@ -202,12 +230,16 @@ func GetTaxiTrips(db *sql.DB) {
 			dropoff_centroid_latitude_float,
 			dropoff_centroid_longitude_float,
 			pickup_zip_code,
-			dropoff_zip_code)
+			dropoff_zip_code,
+			tripType)
 
 		if err != nil {
-			panic(err)
+			fmt.Printf("Error inserting %s trip %s: %v\n", tripType, record.Trip_id, err)
+			continue
 		}
+		insertedCount++
 
 	}
+	fmt.Printf("Finished inserting %d %s trips (%d skipped).\n", insertedCount, tripType, skippedCount)
 
 }
