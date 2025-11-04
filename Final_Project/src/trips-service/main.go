@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"os"
 	"strconv"
-	"sync"
 	"time"
 
 	"database/sql"
@@ -111,21 +110,30 @@ func main() {
 			panic(_err)
 		}
 
-		// Run both API pulls concurrently ---
-		var wg sync.WaitGroup
-		wg.Add(2)
+		start := time.Now()
 
-		go func() {
-			defer wg.Done()
-			GetTrips(db, "taxi", "wrvz-psew", 10, useGeocoding)
-		}()
+		/*
+			// Run both API pulls concurrently ---
+			var wg sync.WaitGroup
+			wg.Add(2)
 
-		go func() {
-			defer wg.Done()
-			GetTrips(db, "tnp", "m6dm-c72p", 10, useGeocoding)
-		}()
+			go func() {
+				defer wg.Done()
+				GetTrips(db, "taxi", "wrvz-psew", 10, useGeocoding)
+			}()
 
-		wg.Wait()
+			go func() {
+				defer wg.Done()
+				GetTrips(db, "tnp", "m6dm-c72p", 10, useGeocoding)
+			}()
+
+			wg.Wait()
+		*/
+		// Just running sequentially works better in this case rather than using goroutines.
+		GetTrips(db, "taxi", "wrvz-psew", 10, useGeocoding)
+		GetTrips(db, "tnp", "m6dm-c72p", 10, useGeocoding)
+		duration := time.Since(start)
+		fmt.Printf("Time to pull:   %v\n", duration)
 
 		fmt.Println("Finished daily update, sleeping for 1 day...")
 		time.Sleep(24 * time.Hour) // sleep for one day
