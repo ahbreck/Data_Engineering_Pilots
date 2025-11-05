@@ -166,9 +166,14 @@ func main() {
 		return
 	}
 
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = PORT // default for local testing
+	}
+
 	mux := http.NewServeMux()
 	s := &http.Server{
-		Addr:         PORT,
+		Addr:         port,
 		Handler:      mux,
 		IdleTimeout:  10 * time.Second,
 		ReadTimeout:  time.Second,
@@ -184,7 +189,7 @@ func main() {
 	mux.Handle("/status", http.HandlerFunc(statusHandler))
 	mux.Handle("/", http.HandlerFunc(defaultHandler))
 
-	fmt.Println("Ready to serve at", PORT)
+	fmt.Println("Ready to serve at", port)
 	err = s.ListenAndServe()
 	if err != nil {
 		fmt.Println(err)
