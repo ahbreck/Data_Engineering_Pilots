@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-const PORT = ":1234"
+//const PORT = ":1234"
 
 func defaultHandler(w http.ResponseWriter, r *http.Request) {
 	log.Println("Serving:", r.URL.Path, "from", r.Host)

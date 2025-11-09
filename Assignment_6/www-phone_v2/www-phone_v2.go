@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/csv"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"regexp"
@@ -18,7 +19,7 @@ type MSDSCourse struct {
 }
 
 // JSONFILE resides in the current directory
-var CSVFILE = "./data.csv"
+var CSVFILE = "/data.csv"
 
 type MSDSCourseCatalog []MSDSCourse
 
@@ -156,24 +157,24 @@ func list() string {
 func main() {
 	err := readCSVFile(CSVFILE)
 	if err != nil {
-		fmt.Println(err)
+		log.Fatalf("Failed to read CSV file: %v", err)
 		return
 	}
 
 	err = createIndex()
 	if err != nil {
-		fmt.Println("Cannot create index.")
+		log.Fatalf("Cannot create index: %v", err)
 		return
 	}
 
 	port := os.Getenv("PORT")
 	if port == "" {
-		port = PORT // default for local testing
+		port = "8080" // fallback for local testing
 	}
 
 	mux := http.NewServeMux()
 	s := &http.Server{
-		Addr:         port,
+		Addr:         ":" + port,
 		Handler:      mux,
 		IdleTimeout:  10 * time.Second,
 		ReadTimeout:  time.Second,
@@ -192,7 +193,7 @@ func main() {
 	fmt.Println("Ready to serve at", port)
 	err = s.ListenAndServe()
 	if err != nil {
-		fmt.Println(err)
+		log.Fatalf("Problem serving at port: %v", err)
 		return
 	}
 }
